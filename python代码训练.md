@@ -59,6 +59,35 @@
   - `last.ckpt`（始终最新）
   - best ckpt（`val_loss` 最低的一次，`save_top_k=1`）
 
+## pytorch加载模型
+- JIT 路线 vs state_dict 路线，本质差异
+1) TorchScript / JIT（torch.jit.load）
+
+你拿到的是：一个可执行的 TorchScript 模型
+优点：
+
+更接近部署（图已固化，依赖更少）
+
+某些场景推理更稳定/可移植
+缺点：
+
+不好改结构、不好插模块
+
+训练/微调时可控性差（尤其要改 forward、加 loss、加 hook 等）
+
+2) state_dict（torch.load + Python build）
+
+你拿到的是：Python 模型 + 一份参数字典
+优点：
+
+最适合研究/训练/微调：能改结构、加模块、插 LoRA、加 prompt、加 adapter
+
+易 debug：可以 print、hook 中间特征
+缺点：
+
+依赖代码实现（build_model 必须和权重匹配）
+
+结构变化会导致 key 不匹配
 
 
 ## 线性代数
