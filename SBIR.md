@@ -95,7 +95,7 @@ CUDA_VISIBLE_DEVICES=1 python -m experiments.train_pretrain
 CUDA_VISIBLE_DEVICES=1 python -m experiments.train_finetune
 ```
 
-### 0、Baseline
+### ZS_SBIR Baseline
 
 **Triplet**
 
@@ -109,7 +109,39 @@ CUDA_VISIBLE_DEVICES=1 python -m experiments.train_finetune
 0.685
 ```
 
+baseline既然这么高就不应该出现这个问题，我得想办法改一下
 
+
+
+### FG_SBIR baseline
+
+**triplet**
+
+ChairV2 目前原始版本的最佳结果：
+
+```
+mAP=0.633732, rank1=0.479669, top10=0.919614
+```
+
+ShoeV2 目前原始版本的最佳结果：
+
+```
+mAP=0.369188, rank1=0.220721, top10=0.704198
+```
+
+**triplet +class**
+
+ChairV2 目前原始版本的最佳结果：
+
+```
+mAP=0.675732, rank1=0.543469, top10=0.938914
+```
+
+ShoeV2 目前原始版本的最佳结果：
+
+```
+mAP=0.445188, rank1=0.297721, top10=0.752198
+```
 
 
 
@@ -384,4 +416,22 @@ $$
 ## RL实现了什么：
 
 不同草图的“最优像素尺寸分布”
+
+# FG-SBIR
+
+ChairV2 目前原始版本的最佳结果：
+
+```
+mAP=0.633732, rank1=0.479669, top10=0.919614
+```
+
+ShoeV2 目前原始版本的最佳结果：
+
+```
+mAP=0.369188, rank1=0.220721, top10=0.704198
+```
+
+
+
+# ZS_FG_SBIR
 

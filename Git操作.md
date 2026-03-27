@@ -219,9 +219,9 @@ Git 协作时最重要的是分清：
 
 
 
-### git命令
+# git常见命令
 
-#### 提交新文件
+## 提交新文件
 
 **一、环境准备（只需一次）**
 
@@ -357,7 +357,7 @@ Branch 'main' set up to track remote branch 'main' from 'origin'.
 
 
 
-#### 分支错误
+## 分支错误
 
 **1. 现象**
 
@@ -445,7 +445,7 @@ git log --oneline --max-count=3
 
 
 
-#### Git 提交并同步到远端
+## Git 提交并同步到远端
 
 **1) `git add -A`**
 
@@ -477,7 +477,7 @@ git push
 
 
 
-#### 不推送保存本地
+## 不推送保存本地
 
 想长期保留本地改动，但不想每次 stash/pop（更“永久”的本地状态）
 建一个本地分支存着改动，但不推送
@@ -500,5 +500,15 @@ git switch tg_pro_tklab
 
 如果担心误 push，可以把这个分支设置成永不 push，或者干脆不设置 upstream。
 
+## 现有仓库开一个新分支
 
+```
+git switch -c FG_ZS_SBIR
+git push -u origin FG_ZS_SBIR
+```
 
+它的效果是：
+
+1. 在**当前仓库**里新建一个本地分支 `FG_ZS_SBIR`
+2. 把这个分支推到**当前远端 origin**
+3. 建立本地分支和远端分支的跟踪关系
