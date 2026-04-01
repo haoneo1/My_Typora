@@ -151,6 +151,11 @@ python scripts/simulator_view_asyn.py -m evt2
 /home/mig/Documents/xmigcs/policy/mlp/model
 ```
 
+4、**Ubuntu / GNOME 自带录屏**
+ 直接按 `Print` 键打开截图工具，切到录屏模式后可以录整个屏幕或选区；快捷键 `Shift + Ctrl + Alt + R` 也可以直接开始/停止录屏。录好的视频默认会存到 `Videos/Screencasts`
+
+
+
 **4、具体手柄操作**
 
 **单按钮状态切换**
@@ -279,6 +284,18 @@ ankle RMS 差 ≈ 46.24, 相关 ≈ −0.704, 滞后 ≈ +0.60 s。
 - 总帧数：**500**
 - 采样间隔：**0.01 s**
 - 采样频率：**100 Hz**
+
+#### 20260330_102752
+
+在删除了上周的修改的代码之后，重新和eric联系得出的新的原始的代码
+
+#### 20260330_134105
+
+
+
+
+
+
 
 ------
 

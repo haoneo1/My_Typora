@@ -304,9 +304,50 @@ self.sigreg_warmup_ramp_epochs = int(getattr(self.opts, "sigreg_warmup_ramp_epoc
 
 用RL决定蒸馏的层数，多老师的选择，多学生的选择，
 
+# Local View
+
+## 1
+
+### 这次具体改了什么
+
+- 多视图配置参数化（`options.py`）
+  - 新增了 `2 global + 4 local` 相关参数（sketch/photo 分开）
+  - 新增 global/local 尺寸参数（`224 / 128 / 112`）
+  - 新增 sketch/photo 各自 crop scale 范围
+  - 新增 sketch local 约束参数（前景比例、边缘密度、重采样次数）
+  - 新增 JEPA 分项 loss 权重（`intra_sk / intra_ph / cross_global / cross_local2global`）和 `lambda_reg`
+- 数据集从“2视图”升级到“global+local 四路视图”（`dataset_pretrain.py`）
+  - 现在每个样本返回：
+    - `img_global_views`
+    - `img_local_views`
+    - `sk_global_views`
+    - `sk_local_views`
+    - `category`
+  - sketch local 增加了“约束重采样”逻辑：
+    - 前景占比 + 边缘密度达标才接受
+    - 超过重试次数自动 fallback 到更大语义区域
+  - photo local 增加了轻量“去纹理”处理（随机灰度化）
+  - 保留了 `data_transform()` 接口兼容训练脚本（实际采样逻辑转到 `__getitem__`）
+- JEPA loss 从混合中心改为双中心 + local→global（`model_pretrain.py`）
+  - 原本是把 `img1/img2/sk1/sk2` 混成一个 center
+  - 现在改成：
+    - `mu_p`: photo global center
+    - `mu_s`: sketch global center
+  - 新 loss 结构：
+    - `L_intra_photo`：photo 全部 views -> `mu_p`
+    - `L_intra_sketch`：sketch 全部 views -> `mu_s`
+    - `L_cross_global`：`mu_s` 与 `mu_p` 对齐
+    - `L_cross_local2global`：`sk_local -> mu_p` + `ph_local -> mu_s`
+  - 总损失改为加权组合，并重新启用 anti-collapse regularization（`lambda_reg` 控制）
+  - `training_step` 已适配新 batch 结构和新日志项
 
 
-# 思路2
+
+
+
+
+
+# 尝试1
 
 ## 1. 预训练阶段
 
