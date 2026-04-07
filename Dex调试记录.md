@@ -399,7 +399,7 @@ endpoint_pos_BCS = motion_data["endpoint_pos_BCS"].reshape(...)
 
 
 
-## 奖励函数
+## 奖励函数基本
 
 
 
@@ -688,6 +688,10 @@ $$
 
 
 
+## 奖励函数汇总
+
+
+
 
 
 ## Asset.data
@@ -857,7 +861,7 @@ python legged_lab/scripts/play.py --task=Dex_walk --num_envs=32
 
 **仿真都需要启动xwalk-run conda环境**
 
-##### 启动主控制节点
+### 启动主控制节点
 
 在xmigcs文件下：
 
@@ -873,7 +877,7 @@ source /opt/ros/humble/setup.bash
 python3 rl_control_node.py  ## 同时需要运行 touch /tmp/rl_start_signal
 ```
 
-#####  启动XBOX手柄数据节点
+###  启动XBOX手柄数据节点
 
 在xmigcs文件下：
 
@@ -883,7 +887,7 @@ source /opt/ros/humble/setup.bash
 ros2 run joy joy_node --ros-args --remap joy:=xbox_data
 ```
 
-##### 启动仿真
+### 启动仿真
 
 在MuJoCo文件
 
@@ -893,7 +897,11 @@ export ROS_DOMAIN_ID=99
 python scripts/simulator_view_asyn.py -m evt2
 ```
 
-##### 控制器使用说明
+### **录屏**
+
+ 直接按 `Print` 键打开截图工具，切到录屏模式后可以录整个屏幕或选区；快捷键 `Shift + Ctrl + Alt + R` 也可以直接开始/停止录屏。录好的视频默认会存到 `Videos/Screencasts`
+
+### 控制器使用说明
 
 **XBOX手柄键位映射**
 
@@ -983,9 +991,21 @@ xMIGCS支持标准云卓手柄控制，开始使用前先确保所有键都回�
 
 ## 上机
 
-检查自启动：
+先连接网线，然后通过 SSH 登录机器人：
 
 ```
+ssh ubuntu@192.168.41.1
+```
+
+密码：
+
+```
+123
+```
+
+**检查自启动**： **自启动修改后要重启**
+
+```bash
 查询自启动状态
 sudo systemctl status proc_manager.service
 使能自启动
@@ -998,39 +1018,67 @@ sudo systemctl start proc_manager.service
 sudo systemctl stop proc_manager.servic
 ```
 
-进入`tmux` 1:
+**修改**
 
+**dex_config.yaml文件**
+
+```bash
+motor_num: 29        # 电机数量
+# actions_size: 12     # action的大小
+dt: 0.01
+
+sim: true # true:仿真模式 false:真机模式，一定要修改
+
+debug: false
+
+control_tool: joystick # joystick, xbox, keyboard
+
+joystick:
+  max_x_plus_speed: 1.0 #上机改成1.0
+  max_x_minus_speed: 0.5
+  max_y_speed: 0.5
+  max_yaw_speed: 1.0
 ```
+
+
+
+**进入`tmux` 1:**
+
+```bash
 sudo su
 source /home/ubuntu/xos/setup.bash
-ros2 launch body_contral body_control.launch.py
+ros2 launch body_control body_control.launch.py
 
 ```
 
-进入`tmux` 2:
+**进入`tmux` 2:**
 
-```
-sudo su
+```bash
+
 source /home/ubuntu/xos/setup.bash
 python3 rl_control_node.py
 
 ```
 
-回到当前文件的terminal:
+**回到当前文件的terminal:**
 
 ```
 touch /tmp/rl_start_signal
 ```
 
-启动手柄：
+**启动手柄：**
 
-```
+```bash
+#进入tmux
+tmux
 sudo su
 source /home/ubuntu/xos/setup.bash
 ros2 run joystick joystick_node
 ```
 
-pip安装
+手柄拨片回正
+
+**pip安装**
 
 ```
 pip install joblib --break-system-packages
@@ -1077,7 +1125,7 @@ torch.norm(env.command_generator.command[:, :2], dim=1) + torch.abs(env.command_
 
 应该算是最接近eric代码的，之前的代码有问题且出现崩溃
 
-#### Original policy
+#### Original policy的数据统计
 
 ```python
 Hip（髋）
@@ -1127,17 +1175,17 @@ ankle RMS 差 ≈ 46.24, 相关 ≈ −0.704, 滞后 ≈ +0.60 s。
 
 在删除了上周的修改的代码之后，重新和eric联系得出的新的原始的代码
 
+##### 出现问题
+
+问题很大  身体晃动 手臂不能往后打开
+
+[](/home/mig/Videos/Screencasts/20260330_102752.webm)
+
 #### 20260330_134105
 
+要解决顿挫问题 使用上身身体后仰
 
-
-
-
-## 解决顿挫
-
-### 使用上身身体后仰
-
-#### policy_add_waist_pitch
+**policy_add_waist_pitch**
 
 ```C
 def waist_pitch_target_exp(
@@ -1189,9 +1237,19 @@ std=0.08：允许一定浮动，不要卡得太死
 weight=0.5：先小一点，不然容易和速度跟踪奖励冲突
 ```
 
+##### 出现问题：
+
+出现左右腿的长短脚，行走不稳定
+
+[](/home/mig/Videos/Screencasts/20260330_134105_39500.webm)
 
 
-### 相对 pelvis 的版本
+
+#### 20260331_162700
+
+针对上面的问题，提出修改link的版本
+
+**相对 pelvis 的版本**
 
 ```c
 def waist_link_relative_pitch_exp(
@@ -1203,7 +1261,7 @@ def waist_link_relative_pitch_exp(
     """Reward waist_pitch_link to lean slightly backward relative to pelvis."""
     asset: Articulation = env.scene[asset_cfg.name]
 
-    # 假设 body_ids 顺序是 [pelvis_id, waist_pitch_link_id]
+   
     pelvis_quat = asset.data.body_quat_w[:, asset_cfg.body_ids[0], :]
     waist_quat  = asset.data.body_quat_w[:, asset_cfg.body_ids[1], :]
 
@@ -1238,7 +1296,154 @@ waist_link_relative_pitch = RewTerm(
 )
 ```
 
-------
+##### 出现问题
+
+目前在mujoco上变现良好，等待real测试，胳膊有问题
+
+[](/home/mig/Videos/Screencasts/20260331_162700.webm)
+
+
+
+#### 20260401_134434
+
+为了缓解摆臂存在的问题
+
+```python
+
+def arm_swing_phase_coupled_exp(
+    env: BaseEnv,
+    sensor_cfg: SceneEntityCfg,
+    asset_cfg: SceneEntityCfg,
+    std: float = 0.40,
+    target_shoulder_pitch_rad: float = -0.35,
+    deadzone_rad: float = 0.05,
+    min_forward_cmd: float = 0.10,
+) -> torch.Tensor:
+    """相位耦合摆臂（对侧手在摆动脚相时肩 pitch 贴近目标）。
+
+    约定：双脚 `body_ids` 顺序为 [左踝, 右踝]；双肩 `joint_ids` 顺序为 [左肩 pitch, 右肩 pitch]。
+    左脚摆动（左离地、右支撑）→ 奖励右臂肩 pitch；右脚摆动 → 奖励左臂。
+    仅在 yaw 系前进命令 `vx_cmd > min_forward_cmd` 时生效。
+
+    调参：摆臂不够 → 增大 weight 或把 |target_shoulder_pitch_rad| 加大（向“身后”一侧调）；
+    过僵或抖动 → 增大 std / deadzone，或略降 weight。
+
+    输入shape: current_contact_time=(N,2), joint_pos=(N,D), command=(N,3)。
+    """
+    assert len(sensor_cfg.body_ids) == 2, "arm_swing_phase_coupled_exp: need exactly 2 foot bodies [L, R]"
+    assert len(asset_cfg.joint_ids) == 2, "arm_swing_phase_coupled_exp: need 2 joints [L shoulder_pitch, R shoulder_pitch]"
+
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    left_on = contact_time[:, 0] > 0.0
+    right_on = contact_time[:, 1] > 0.0
+    left_swing = (~left_on) & right_on
+    right_swing = left_on & (~right_on)
+
+    j0, j1 = int(asset_cfg.joint_ids[0]), int(asset_cfg.joint_ids[1])
+    q_l = asset.data.joint_pos[:, j0]
+    q_r = asset.data.joint_pos[:, j1]
+
+    err_l = q_l - target_shoulder_pitch_rad
+    err_r = q_r - target_shoulder_pitch_rad
+    abs_l = torch.abs(err_l)
+    abs_r = torch.abs(err_r)
+    eff_l = torch.clamp(abs_l - deadzone_rad, min=0.0)
+    eff_r = torch.clamp(abs_r - deadzone_rad, min=0.0)
+    r_l = torch.exp(-torch.square(eff_l) / (std**2))
+    r_r = torch.exp(-torch.square(eff_r) / (std**2))
+
+    # 右脚摆动 → 左臂向后；左脚摆动 → 右臂向后
+    phase_reward = right_swing.float() * r_l + left_swing.float() * r_r
+
+    vx_cmd = env.command_generator.command[:, 0]
+    forward_gate = (vx_cmd > min_forward_cmd).float()
+
+    return phase_reward * forward_gate
+
+```
+
+- 脚：`sensor_cfg.body_ids` 必须为 2 个，顺序 [左踝, 右踝]（与 `feet_slide_update` 一致：`ankle_roll_l_link`, `ankle_roll_r_link`）。
+- 相位：单支撑且摆动脚离地时
+  - 右脚摆动（左撑地、右离地）→ 用指数核奖励 左肩 `shoulder_pitch` 接近 `target_shoulder_pitch_rad`
+  - 左脚摆动 → 奖励 右肩
+- 门控：仅当 yaw 系前进指令 `vx_cmd > min_forward_cmd` 时给奖励（避免站立/小速度乱摆）。
+- 平滑：对肩角误差有 `deadzone_rad`，再 `exp(-eff_err²/std²)`。
+
+##### 出现问题：
+
+胳膊不能往后的问题依然存在  所以修正了motion_loader 里面的数据
+
+[](/home/mig/Videos/Screencasts/20260402_101758.webm)
+
+#### 20260402_101758
+
+尝试在motion_loader 里修改AMP的arm姿态
+
+```python
+elbow_offset = -0.5 #原为-0.3
+
+left_arm_pos[:, -1]  += elbow_offset
+
+right_arm_pos[:, -1] += elbow_offset
+shoulder_pitch_offset = 0.4 #原为0.2
+
+left_arm_pos[:, 0]  += shoulder_pitch_offset
+
+right_arm_pos[:, 0] += shoulder_pitch_offset
+```
+
+##### 出现问题
+
+僵硬问题明显，上臂后仰但是小臂向前弯曲，不能超过身侧
+
+[](/home/mig/Videos/Screencasts/20260402_101758.webm)
+
+#### 20260403_163237
+
+解决手臂的问题
+
+```python
+def joint_torque_pair_diff_l2(
+    env: BaseEnv,
+    asset_cfg: SceneEntityCfg,
+    sensor_cfg: SceneEntityCfg | None = None,
+    require_double_support: bool = False,
+) -> torch.Tensor:
+    """惩罚一对关节施加力矩的差异 (tau0 - tau1)^2。
+    用于左右膝 pitch 等成对关节的“负载均衡”正则。注意：单脚支撑时两膝力矩本就不对称，
+    若 require_double_support=False，会对正常步态产生拉扯，权重务必很小或改为仅双支撑。
+    require_double_support=True 时需传 sensor_cfg（与 feet 一致的两踝 body），仅在双脚同时接触时计惩罚。
+    输入shape: applied_torque=(N,D)；可选 current_contact_time=(N,2)。
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    if len(asset_cfg.joint_ids) != 2:
+        raise ValueError("joint_torque_pair_diff_l2: asset_cfg.joint_ids must have exactly 2 entries [L, R]")
+    j0, j1 = int(asset_cfg.joint_ids[0]), int(asset_cfg.joint_ids[1])
+    t0 = asset.data.applied_torque[:, j0]
+    t1 = asset.data.applied_torque[:, j1]
+    penalty = torch.square(t0 - t1)
+    if require_double_support:
+        if sensor_cfg is None:
+            raise ValueError("joint_torque_pair_diff_l2: sensor_cfg required when require_double_support=True")
+        contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+        contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+        in_contact = contact_time > 0.0
+        dual = torch.sum(in_contact.int(), dim=1) == 2
+        penalty = penalty * dual.float()
+    return penalty
+
+```
+
+双脚都在地时，左右膝更应对称，和步态冲突小。
+
+##### 出现问题
+
+[](/home/mig/Videos/Screencasts/20260403_163237.webm)
+
+躯体僵硬， 不应该对motion_loader做大的修改， 不应该加入太多的rewards
 
 
 
@@ -1257,6 +1462,61 @@ waist_link_relative_pitch = RewTerm(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 数据分析
+
+#### 20260401_134434
+
+| 关节对      | 位置幅值L | 位置幅值R | 速度峰值L | 速度峰值R | 力矩峰值L | 力矩峰值R |
+| ----------- | --------- | --------- | --------- | --------- | --------- | --------- |
+| hip_roll    | 0.139     | 0.112     | 0.803     | 0.727     | 107.060   | 101.205   |
+| hip_pitch   | 0.624     | 0.646     | 3.201     | 3.312     | 87.469    | 84.317    |
+| hip_yaw     | 0.084     | 0.101     | 0.761     | 0.811     | 18.468    | 15.064    |
+| knee_pitch  | 1.003     | 1.031     | 7.271     | 7.472     | 145.466   | 126.125   |
+| ankle_pitch | 0.449     | 0.447     | 5.713     | 5.539     | 55.000    | 55.000    |
+| ankle_roll  | 0.175     | 0.191     | 1.346     | 1.418     | 12.519    | 10.488    |
 
 
 
