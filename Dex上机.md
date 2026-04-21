@@ -12,7 +12,7 @@ ssh ubuntu@192.168.41.1
 123
 ```
 
-检查自启动： **自启动修改后要重启**
+**检查自启动： 自启动修改后要重启**
 
 ```bash
 查询自启动状态
@@ -27,11 +27,7 @@ sudo systemctl start proc_manager.service
 sudo systemctl stop proc_manager.servic
 ```
 
-修改
-
-dex_config.yaml文件
-
-
+**修改 `dex_config.yaml`文件**
 
 ```bash
 motor_num: 29        # 电机数量
@@ -92,7 +88,7 @@ source /home/ubuntu/xos/setup.bash
 ros2 run joystick joystick_node
 ```
 
-手柄拨片回正
+**手柄拨片回正**
 
 pip安装
 

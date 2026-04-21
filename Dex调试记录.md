@@ -401,6 +401,10 @@ endpoint_pos_BCS = motion_data["endpoint_pos_BCS"].reshape(...)
 
 ## 奖励函数基本
 
+## 数学设计
+
+
+
 
 
 ```
@@ -840,7 +844,7 @@ data.update: type=method #刷新/写回仿真数据的成员方法，不是状�
 
 ```
 
-## 
+
 
 # 操作
 
@@ -1447,6 +1451,15 @@ def joint_torque_pair_diff_l2(
 
 
 
+#### 20260407_164421
+
+取消了对arm做的改动，但是依然使用的是：
+
+```
+amp_motion_files = glob.glob("legged_lab/envs/Dex/datasets/motion_walk/*.npz")
+```
+
+[](/home/mig/Videos/Screencasts/20260407_164421.webm)
 
 
 
@@ -1454,24 +1467,119 @@ def joint_torque_pair_diff_l2(
 
 
 
+#### 20260407_182804
+
+取消了对arm做的改动，使用的是：
+
+```
+amp_motion_files = glob.glob("legged_lab/envs/Dex/datasets/motion_47/*.npz")
+```
+
+[](/home/mig/Videos/Screencasts/20260407_182804.webm)
+
+
+
+#### **20260408_191452**
+
+为了缓解arm不后仰
+
+```python
+
+def arm_swing_phase_coupled_exp(
+    env: BaseEnv,
+    sensor_cfg: SceneEntityCfg,
+    asset_cfg: SceneEntityCfg,
+    std: float = 0.40,
+    target_shoulder_pitch_rad: float = -0.45, #原始为-0.35
+    deadzone_rad: float = 0.05,
+    min_forward_cmd: float = 0.10,
+) -> torch.Tensor:
+  ....
+```
+
+[](/home/mig/Videos/Screencasts/20260408_191452.webm)
+
+#####  出现问题
+
+arm不后仰得到缓解
+
+左右脚长短不一得到缓解
+
+
+
+#### 20260409_154531
+
+arm的target 调大
+
+```python
+    arm_swing_phase = RewTerm(
+        func=mdp.arm_swing_phase_coupled_exp,
+        weight=0.12,
+        params={
+            "sensor_cfg": SceneEntityCfg(
+                "contact_sensor", body_names=["ankle_roll_l_link", "ankle_roll_r_link"]
+            ),
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=["shoulder_pitch_l_joint", "shoulder_pitch_r_joint"],
+            ),
+            "std": 0.40,
+            "target_shoulder_pitch_rad": -0.55,#从-0.35  到-0.45  再到-0.55
+            "deadzone_rad": 0.05,
+            "min_forward_cmd": 0.10,
+        },
+    )
+```
+
+waist_link 调大
+
+```python
+    waist_back_lean = RewTerm(
+        func=mdp.waist_link_relative_pitch_exp,
+        weight=0.6,
+        params={
+            "target_rad": -0.15,#原始为-0.1
+            "std": 0.06,
+            "deadzone_rad": 0.02,
+            "require_command": True,
+            "asset_cfg": SceneEntityCfg("robot", body_names=["pelvis", "waist_pitch.*"]),
+        },
+    )
+```
+
+##### 出现问题
+
+[](/home/mig/Videos/Screencasts/20260409_154531.webm)
+
+行走僵硬
 
 
 
 
 
+#### 20260416_151003
+
+锁定waist
+
+名单上的关节：策略动作在 buffer/clip/目标里都被强制成「等价于只跟踪默认角」；其它关节照旧由 RL 控。 打开或关掉只靠 `action_locked_to_default_joint_names` 是否为空。
+
+[](/home/mig/Videos/Screencasts/20260413_151003.webm)
+
+##### 出现问题：
+
+长短脚 左右脚腾空时间不一致，身体晃动明显  顿挫明显
 
 
 
+#### 20260416_151110
 
+开放waist
 
+[](/home/mig/Videos/Screencasts/20260413_151110.webm)
 
+##### 出现问题：
 
-
-
-
-
-
-
+和上面一样，同样有腾空时间不一样的问题  右脚走路快一点  左脚走路慢
 
 
 
