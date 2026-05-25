@@ -1557,7 +1557,7 @@ waist_link 调大
 
 
 
-#### 20260416_151003
+#### 20260413_151003
 
 锁定waist
 
@@ -1573,7 +1573,7 @@ waist_link 调大
 
 #### 20260416_151110
 
-开放waist
+解锁waist
 
 [](/home/mig/Videos/Screencasts/20260413_151110.webm)
 
@@ -1591,19 +1591,105 @@ waist_link 调大
 
 
 
+#### 20260421_104720
+
+修改盆骨
+
+添加
+
+```python
+def pelvis_pitch_l2(
+    env: BaseEnv,
+    target_rad: float = 0.0,
+    deadzone_rad: float = 0.03,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """惩罚 pelvis pitch 偏离目标角度，抑制骨盆前倾/后仰。
+    输入shape: body_quat_w=(N,B,4)。
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    body_quat = asset.data.body_quat_w[:, asset_cfg.body_ids[0], :]
+    _, pitch, _ = math_utils.euler_xyz_from_quat(body_quat)
+    error = pitch - target_rad
+    eff_error = torch.clamp(torch.abs(error) - deadzone_rad, min=0.0)
+    return torch.square(eff_error)
+
+```
+
+效果并不明显
+
+[](/home/mig/Videos/Screencasts/20260421_104720.webm)
 
 
 
 
 
+#### 20260422_142159
+
+调整了weight   下一次尝试不同的约束
+
+```python
+pelvis_pitch_l2 = RewTerm(
+    func=mdp.pelvis_pitch_l2,
+    weight=-2.5,#原始为-1.5
+    params={
+        "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
+        "target_rad": 0.0,
+        "deadzone_rad": 0.03,
+    },
+)
+```
+
+[](/home/mig/Videos/Screencasts/20260422_142159.webm)
+
+
+
+#### 20260423_103721
+
+
+
+```python
+    pelvis_pitch_l2 = RewTerm(
+        func=mdp.pelvis_pitch_l2,
+        weight=-2.5,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="pelvis"),
+            "target_rad": -0.05, #修改了后仰角度
+            "deadzone_rad": 0.03,
+        },
+    )
+```
+
+有点长短脚
+
+
+
+[](/home/mig/Videos/Screencasts/20260423_103721.webm)
 
 
 
 
 
+```
+在 legged_lab/mdp/rewards.py 增强了 pelvis_pitch_l2：
+
+新增 forward_weight / backward_weight
+支持前后非对称惩罚：前倾（pitch < target）可罚得更重
+在 legged_lab/envs/Dex/env_cfg/dex_env_cfg.py 调了姿态相关奖励：
 
 
+pelvis_pitch_l2.weight: -2.5 -> -3.5
+pelvis_pitch_l2.target_rad: -0.05 -> -0.02
+pelvis_pitch_l2.deadzone_rad: 0.03 -> 0.02
+pelvis_pitch_l2 新增参数：forward_weight=2.2, backward_weight=0.8
 
+
+waist_back_lean.weight: 0.6 -> 0.45
+waist_back_lean.target_rad: -0.10 -> -0.08
+waist_back_lean.std: 0.06 -> 0.08
+waist_back_lean.deadzone_rad: 0.02 -> 0.03
+新增 pelvis_orientation_l2（weight=-0.5）约束骨盆整体姿态
+```
 
 
 

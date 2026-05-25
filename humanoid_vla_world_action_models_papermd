@@ -1,0 +1,1133 @@
+# Humanoid VLA and World Action Models
+
+> 说明：本文档根据论文清单中的条目进行整理。  
+> 分类原则：部分论文同时涉及 VLA、动作表示、数据迁移和控制，但这里按照**主要贡献**归入最合适的阶段。  
+> 主线逻辑：人形机器人正在从传统的动作跟踪，逐步走向 **Whole-Body Control → Motion Representation → Human Data Transfer → Humanoid VLA → World Action Model** 的发展路径。
+
+---
+
+# 总体研究脉络
+
+```text
+第一阶段：Whole-Body Control
+机器人先要能稳定动起来
+
+↓
+
+第二阶段：Motion Representation
+不再直接跟踪关节轨迹，而是使用 latent / token / EEF trajectory / foot placement
+
+↓
+
+第三阶段：Human Data Transfer
+用人类视频、第一视角视频、跨 embodiment 数据解决机器人数据不足
+
+↓
+
+第四阶段：Humanoid VLA
+视觉 + 语言 + 动作统一建模，让机器人根据环境和指令生成动作
+
+↓
+
+第五阶段：World Action Model
+机器人不仅输出动作，还要预测未来、理解物理、做长期规划
+```
+
+---
+
+# 第一阶段：Whole-Body Control
+
+## 机器人先要能稳定动起来
+
+这一阶段的核心问题是：
+
+> 给机器人一个动作目标，它能不能稳定、自然、不摔倒地执行？
+
+重点不是理解语言，也不是世界模型，而是先建立可靠的**身体执行能力**。  
+这一阶段对应的是人形机器人系统中的中低层控制能力，包括 locomotion、whole-body tracking、sim-to-real、动作稳定性和全身协调。
+
+---
+
+## 1.1 通用全身控制器 / WBC
+
+### JAEGER: Dual-Level Humanoid Whole-Body Controller
+
+**核心定位：**  
+上下肢解耦的双层 whole-body controller。
+
+**主要思想：**
+
+- 下肢更适合 root velocity tracking；
+- 上肢更适合 pose / joint tracking；
+- 统一一个控制器直接控制上下肢，容易产生耦合和训练不稳定；
+- JAEGER 通过 dual-level controller 缓解上下肢目标冲突。
+
+**适合关注：**
+
+- 上下肢控制解耦；
+- root-based mode；
+- pose-based mode；
+- curriculum learning；
+- 人体动作 retarget 到机器人控制。
+
+---
+
+### SONIC: Supersizing Motion Tracking for Natural Humanoid Whole-Body Control
+
+**核心定位：**  
+大规模 motion tracking，用于自然的人形全身控制。
+
+**主要思想：**
+
+- 扩大动作数据规模；
+- 训练更自然、更通用的人形 whole-body tracking policy；
+- 重点解决机器人能否稳定跟踪大规模复杂人类动作。
+
+**适合关注：**
+
+- 大规模 motion tracking；
+- humanoid whole-body control；
+- 人类动作到机器人控制的中间执行层。
+
+---
+
+### From Experts to a Generalist: Toward General Whole-Body Control for Humanoid Robots
+
+**核心定位：**  
+先训练多个 expert controller，再蒸馏成 generalist whole-body controller。
+
+**主要思想：**
+
+- 不同动作的动力学差异很大，直接混合训练一个通用策略容易出现梯度冲突；
+- 先根据动作语义和动力学特征聚类；
+- 每一类动作训练一个 expert；
+- 最后用 DAgger 将多个 expert 蒸馏成 generalist。
+
+**适合关注：**
+
+- 多技能 whole-body control；
+- expert-to-generalist；
+- 动作聚类；
+- sim-to-real delta model；
+- 通用 WBC 训练。
+
+---
+
+### AMO: Adaptive Motion Optimization for Hyper-Dexterous Humanoid Whole-Body Control
+
+**核心定位：**  
+面向高灵巧人形机器人全身控制的 adaptive motion optimization。
+
+**主要思想：**
+
+- 关注更复杂、更灵巧的全身动作；
+- 通过优化方式提高动作适配性和执行稳定性。
+
+**适合关注：**
+
+- hyper-dexterous humanoid；
+- whole-body control；
+- adaptive motion optimization。
+
+---
+
+## 1.2 动作跟踪与物理可执行性
+
+### RL from Physical Feedback: Aligning Large Motion Models with Humanoid Control
+
+**核心定位：**  
+让大动作模型生成的动作更加物理可执行。
+
+**主要思想：**
+
+- 大规模 Text-to-Motion / Large Motion Model 生成的动作语义上像人，但物理上不一定能让机器人执行；
+- 典型问题包括脚滑、穿地、重心崩溃和 sim-to-real gap；
+- 通过 robot physical feedback 反过来优化 motion model。
+
+**适合关注：**
+
+- motion generation 的 physical feasibility；
+- 机器人执行反馈；
+- 语义正确与物理可执行之间的平衡。
+
+---
+
+### DreamControl: Human-Inspired Whole-Body Humanoid Control for Scene Interaction via Guided Diffusion
+
+**核心定位：**  
+guided diffusion 生成参考动作，再用 RL 训练机器人执行场景交互任务。
+
+**主要思想：**
+
+- 第一阶段：用文本条件和时空引导生成参考人体轨迹；
+- 第二阶段：将轨迹 retarget 到机器人，并通过 RL 训练机器人跟踪和完成任务；
+- 面向 pick、open drawer、press button、squat 等全身交互任务。
+
+**适合关注：**
+
+- diffusion + RL；
+- 全身场景交互；
+- 参考轨迹生成；
+- sim-to-real 部署。
+
+---
+
+### HDMI: Learning Interactive Humanoid Whole-Body Control from Human Videos
+
+**核心定位：**  
+从人类视频学习 humanoid-object interaction。
+
+**主要思想：**
+
+- 不只是模仿人体动作，而是同时跟踪机器人状态和物体状态；
+- 将 humanoid-object interaction 建模为 Robot-Object Co-Tracking；
+- 通过 residual action 让策略围绕参考动作微调，提高探索效率和稳定性。
+
+**适合关注：**
+
+- human video to humanoid control；
+- object tracking；
+- interaction reward；
+- contact-rich whole-body control。
+
+---
+
+## 1.3 人形控制系统 / 数据采集系统
+
+### TWIST: Teleoperated Whole-Body Imitation System
+
+**核心定位：**  
+全身遥操作模仿系统。
+
+**主要思想：**
+
+- 用于采集人形机器人 whole-body imitation 数据；
+- 支持真实人形机器人的全身操作和控制数据获取。
+
+---
+
+### TWIST2: Scalable, Portable, and Holistic Humanoid Data Collection System
+
+**核心定位：**  
+更可扩展、更便携的全身人形数据采集系统。
+
+**主要思想：**
+
+- 面向大规模 humanoid 数据采集；
+- 强调系统的可移植性和整体性。
+
+---
+
+### AGILE: A Comprehensive Workflow for Humanoid Loco-Manipulation Learning
+
+**核心定位：**  
+人形 loco-manipulation 学习的完整流程框架。
+
+**主要思想：**
+
+- 关注从数据、仿真、训练到部署的完整 humanoid loco-manipulation pipeline；
+- 适合作为工程系统路线参考。
+
+---
+
+# 第二阶段：Motion Representation
+
+## 不再直接跟踪关节轨迹，而是使用 latent / token / EEF trajectory / foot placement
+
+这一阶段的核心问题是：
+
+> 高层语义和低层控制之间，应该用什么动作表示连接？
+
+传统方式通常是：
+
+```text
+人类动作 → retargeting → 机器人关节轨迹 → tracking controller
+```
+
+但这种方式误差累积严重，而且“人能做”不代表“机器人能做”。  
+因此新趋势是使用更抽象、更适合控制的动作表示，例如：
+
+- motion latent；
+- motion token；
+- latent action；
+- end-effector trajectory；
+- foot placement；
+- discrete loco-manipulation command。
+
+---
+
+## 2.1 Motion Latent
+
+### From Language to Locomotion: Retargeting-Free Humanoid Control via Motion Latent Guidance
+
+**核心定位：**  
+用 motion latent 直接驱动 humanoid policy，避免显式 retargeting。
+
+**主要思想：**
+
+- 文本不再生成完整人体动作轨迹；
+- 文本先生成 motion latent；
+- motion latent 再通过 diffusion policy 生成机器人 action；
+- 部署时不需要 reference motion、retargeting 或 privileged information。
+
+**适合关注：**
+
+- retargeting-free control；
+- language to motion latent；
+- latent-driven diffusion policy；
+- humanoid locomotion。
+
+---
+
+### RoboMirror: Understand Before You Imitate for Video to Humanoid Locomotion
+
+**核心定位：**  
+从视频理解运动语义，再用 motion latent 生成机器人动作。
+
+**主要思想：**
+
+- 视频不只是用来估计姿态；
+- 视频包含运动语义、环境信息和意图；
+- 先理解视频，再生成 motion latent；
+- 绕开 pose estimation 和 retargeting。
+
+**适合关注：**
+
+- video to humanoid locomotion；
+- VLM-based motion understanding；
+- motion latent；
+- diffusion policy。
+
+---
+
+### FRoM-W1: Towards General Humanoid Whole-Body Control with Language Instructions
+
+**核心定位：**  
+面向语言指令的通用人形全身控制。
+
+**主要思想：**
+
+- 将 language instruction 引入 whole-body control；
+- 连接语言语义与机器人全身运动执行。
+
+---
+
+## 2.2 Motion Token / Action Token
+
+### UniAct: Unified Motion Generation and Action Streaming for Humanoid Robots
+
+**核心定位：**  
+将多模态指令统一成 motion token，并支持实时 streaming 执行。
+
+**主要思想：**
+
+- 文本、音乐、轨迹、动作都被统一到离散 motion token；
+- MLLM 负责 token 级生成；
+- tracker 负责物理稳定执行；
+- 支持 action streaming，降低延迟。
+
+**适合关注：**
+
+- motion token；
+- multimodal instruction；
+- action streaming；
+- MLLM + tracker。
+
+---
+
+### Humanoid-VLA: Towards Universal Humanoid Control with Visual Integration
+
+**核心定位：**  
+将人体动作离散化成身体部件 token，再与语言和视觉结合。
+
+**主要思想：**
+
+- 将人体动作拆成左腿、右腿、躯干、左臂、右臂；
+- 对每个身体部件做 VQ-VAE 离散化；
+- 形成可编辑、可组合的 motion token；
+- 使动作可以进入 LLM token 序列。
+
+**适合关注：**
+
+- compositional motion quantization；
+- body-part motion token；
+- language-motion pre-alignment；
+- visual-conditioned fine-tuning。
+
+---
+
+### GENMO: A GENeralist Model for Human MOtion
+
+**核心定位：**  
+通用人体动作生成模型。
+
+**主要思想：**
+
+- 学习大规模人体运动先验；
+- 可作为 humanoid motion generation 或 motion prior 的基础。
+
+---
+
+### Training-Time Action Conditioning for Efficient Real-Time Chunking
+
+**核心定位：**  
+面向实时 action chunking 的训练期动作条件建模。
+
+**主要思想：**
+
+- 提高 action chunking 的实时效率；
+- 适合与 diffusion policy / VLA action generation 结合。
+
+---
+
+## 2.3 End-Effector Trajectory / Foot Placement
+
+### TrajBooster: Boosting Humanoid Whole-Body Manipulation via Trajectory-Centric Learning
+
+**核心定位：**  
+用末端执行器 6D 轨迹作为跨机器人形态的中间表示。
+
+**主要思想：**
+
+- 轮式人形和双足人形结构不同，但手部空间轨迹具有可迁移性；
+- 从 Agibot-World 中提取双臂末端轨迹；
+- 将轨迹映射到 Unitree G1 工作空间；
+- 再生成适配 G1 的全身动作数据，用于 VLA 后预训练。
+
+**适合关注：**
+
+- end-effector trajectory；
+- cross-embodiment transfer；
+- trajectory-centric learning；
+- VLA post-pre-training。
+
+---
+
+### HiWET: Hierarchical World-Frame End-Effector Tracking for Long-Horizon Humanoid Loco-Manipulation
+
+**核心定位：**  
+长时程 humanoid loco-manipulation 的世界坐标系末端跟踪。
+
+**主要思想：**
+
+- 用 world-frame end-effector tracking 连接高层任务和低层控制；
+- 适合长时程操作任务。
+
+---
+
+### REFINE-DP: Diffusion Policy Fine-tuning for Humanoid Loco-Manipulation via Reinforcement Learning
+
+**核心定位：**  
+用 RL 微调 diffusion policy，并采用 foot placement 作为更直接的下肢控制表示。
+
+**主要思想：**
+
+- 下半身 locomotion 不只用 linear velocity；
+- 使用 foot placement 作为更底层、更直接的数据格式；
+- 利用 DPPO 对 diffusion policy 进行 RL fine-tuning；
+- 与 low-level controller 联合优化。
+
+**适合关注：**
+
+- foot placement；
+- diffusion policy；
+- DPPO；
+- low-level controller joint fine-tuning。
+
+---
+
+## 2.4 Diffusion / Flow Policy
+
+### Flow Matching Policy Gradients
+
+**核心定位：**  
+将 flow matching policy 和 policy gradient 结合。
+
+---
+
+### ReinFlow: Fine-tuning Flow Matching Policy with Online Reinforcement Learning
+
+**核心定位：**  
+用在线 RL 微调 flow matching policy。
+
+---
+
+### Mean Flows for One-step Generative Modeling
+
+**核心定位：**  
+一步式生成建模，提高生成速度。
+
+---
+
+### Improved Mean Flows: On the Challenges of Fastforward Generative Models
+
+**核心定位：**  
+分析快速生成模型的训练和推理挑战。
+
+---
+
+# 第三阶段：Human Data Transfer
+
+## 用人类视频、第一视角视频、跨 embodiment 数据解决机器人数据不足
+
+这一阶段的核心问题是：
+
+> 人形机器人数据太贵，能不能用人类视频、第一视角数据、其他机器人数据来迁移？
+
+真正的双足人形 whole-body teleoperation 数据非常难采集，因此大量工作开始利用：
+
+- human video；
+- egocentric video；
+- human hand trajectory；
+- cross-embodiment robot data；
+- robot-free demonstration；
+- synthetic human-robot paired data。
+
+---
+
+## 3.1 Human Video → Robot
+
+### Mitty: Diffusion-based Human-to-Robot Video Generation
+
+**核心定位：**  
+从人类示范视频生成机器人执行视频。
+
+**主要思想：**
+
+- 目标是端到端 Human2Robot video generation；
+- 基于大规模视频 diffusion transformer；
+- 通过自动 pipeline 构造 human-robot paired videos；
+- 用生成视频方式进行 embodiment transfer。
+
+---
+
+### HDMI: Learning Interactive Humanoid Whole-Body Control from Human Videos
+
+**核心定位：**  
+从单目 RGB 人类视频学习人形全身交互技能。
+
+**主要思想：**
+
+- 从视频估计人体和物体姿态；
+- 将人体动作 retarget 到 humanoid；
+- 用 RL 学习 robot-object co-tracking；
+- 适合 contact-rich interaction。
+
+---
+
+### EgoHumanoid: Unlocking In-the-Wild Loco-Manipulation with Robot-Free Egocentric Demonstration
+
+**核心定位：**  
+用无机器人参与的第一视角人类示范学习 in-the-wild loco-manipulation。
+
+**主要思想：**
+
+- 降低人形机器人数据采集成本；
+- 直接利用人类 egocentric demonstrations；
+- 面向真实环境中的 loco-manipulation。
+
+---
+
+### HumanNet: Scaling Human-centric Video Learning to One Million Hours
+
+**核心定位：**  
+大规模人类中心视频学习。
+
+**主要思想：**
+
+- 扩展 human-centric video learning 到百万小时级别；
+- 可为机器人学习提供大规模人类行为先验。
+
+---
+
+## 3.2 Egocentric Human Data
+
+### EgoScale: Scaling Dexterous Manipulation with Diverse Egocentric Human Data
+
+**核心定位：**  
+用多样化第一视角人类数据扩展灵巧操作能力。
+
+---
+
+### METIS: Multi-Source Egocentric Training for Integrated Dexterous Vision-Language-Action Model
+
+**核心定位：**  
+用多源第一视角数据训练 integrated dexterous VLA。
+
+---
+
+### GazeVLA: Learning Human Intention for Robotic Manipulation
+
+**核心定位：**  
+利用人类 gaze / intention 信息辅助机器人操作。
+
+---
+
+## 3.3 Cross-Embodiment Transfer
+
+### Emergence of Human to Robot Transfer in Vision-Language-Action Models
+
+**核心定位：**  
+研究 Human-to-Robot transfer 是否会随模型规模和数据多样性自然涌现。
+
+**主要思想：**
+
+- 将人类看作一种新的 embodiment；
+- 人类数据不做复杂手工迁移；
+- 当 VLA 预训练规模和 embodiment 多样性足够大时，人类数据开始对机器人任务产生有效迁移。
+
+---
+
+### TrajBooster: Boosting Humanoid Whole-Body Manipulation via Trajectory-Centric Learning
+
+**核心定位：**  
+用轮式人形机器人数据提升双足人形机器人 VLA 能力。
+
+**主要思想：**
+
+- 将末端轨迹作为 morphology-agnostic interface；
+- 从轮式机器人数据迁移到双足机器人；
+- 用少量真实双足遥操作数据完成适配。
+
+---
+
+### OmniRetarget: Interaction-Preserving Data Generation for Humanoid Whole-Body Loco-Manipulation and Scene Interaction
+
+**核心定位：**  
+通过 interaction mesh 提高 human-to-humanoid retarget 数据质量。
+
+**主要思想：**
+
+- 传统 retarget 只对齐人体关键点，容易破坏接触关系；
+- OmniRetarget 显式保持人-物-地形的空间与接触关系；
+- 在 retarget 阶段解决问题，而不是让 RL 后面补锅。
+
+---
+
+### HEX: Humanoid-Aligned Experts for Cross-Embodiment Whole-Body Manipulation
+
+**核心定位：**  
+面向跨 embodiment 的人形全身操作专家模型。
+
+---
+
+### Humanoid Manipulation Interface: Humanoid Whole-Body Manipulation from Robot-Free Demonstrations
+
+**核心定位：**  
+从 robot-free demonstrations 学习 humanoid whole-body manipulation。
+
+---
+
+## 3.4 Few-Shot / Demo-Based Transfer
+
+### DemoHLM: From One Demonstration to Generalizable Humanoid Loco-Manipulation
+
+**核心定位：**  
+从单个 demonstration 泛化到 humanoid loco-manipulation。
+
+---
+
+### Learning Human-Intention Priors from Large-Scale Human Demonstrations for Robotic Manipulation
+
+**核心定位：**  
+从大规模人类示范中学习 human-intention priors。
+
+---
+
+### Learning Versatile Humanoid Manipulation with Touch Dreaming
+
+**核心定位：**  
+利用 touch dreaming 学习多样化 humanoid manipulation。
+
+---
+
+# 第四阶段：Humanoid VLA
+
+## 视觉 + 语言 + 动作统一建模，让机器人根据环境和指令生成动作
+
+这一阶段的核心问题是：
+
+> 机器人如何从视觉和语言中理解任务，并生成可执行动作？
+
+它比 WBC 更高层。典型链路是：
+
+```text
+视觉输入 + 语言指令
+↓
+任务理解
+↓
+动作意图 / latent action / action token / 轨迹
+↓
+Whole-Body Controller
+↓
+机器人执行
+```
+
+---
+
+## 4.1 通用 Humanoid VLA / Foundation Model
+
+### GR00T N1: An Open Foundation Model for Generalist Humanoid Robots
+
+**核心定位：**  
+NVIDIA 提出的通用人形机器人 foundation model。
+
+**典型链路：**
+
+```text
+RGB + Language
+↓
+VLM
+↓
+Diffusion Policy
+↓
+Joint / EEF / Pose Action
+↓
+Whole-Body IK / WBC
+↓
+PD / Torque Controller
+↓
+Robot
+```
+
+**适合关注：**
+
+- generalist humanoid robot；
+- VLM + diffusion policy；
+- action representation；
+- WBC interface；
+- simulation evaluation。
+
+---
+
+### Humanoid-VLA: Towards Universal Humanoid Control with Visual Integration
+
+**核心定位：**  
+构建同时具备语言理解、第一视角视觉感知和全身运动控制能力的人形 VLA。
+
+**主要思想：**
+
+- language-motion pre-alignment；
+- vision-conditioned fine-tuning；
+- whole-body controller；
+- 用 motion token 把动作接入语言模型。
+
+---
+
+### WholeBodyVLA: Towards Unified Latent VLA for Whole-Body Loco-Manipulation Control
+
+**核心定位：**  
+面向全身 loco-manipulation 的 unified latent VLA。
+
+**主要思想：**
+
+- 高层 VLA 预测 latent action；
+- 双 LAM 设计：locomotion LAM 和 manipulation LAM；
+- 下半身采用离散 locomotion command；
+- LMO RL 控制器负责稳定执行。
+
+---
+
+### Ψ₀: An Open Foundation Model Towards Universal Humanoid Loco-Manipulation
+
+**核心定位：**  
+开源的人形 loco-manipulation foundation model。
+
+**主要特点：**
+
+- 代码和权重开源；
+- 面向通用 humanoid loco-manipulation。
+
+---
+
+### ULTRA: Unified Multimodal Control for Autonomous Humanoid Whole-Body Loco-Manipulation
+
+**核心定位：**  
+面向自主全身 loco-manipulation 的统一多模态控制框架。
+
+---
+
+## 4.2 VLA 表征与预训练
+
+### XR-1: Towards Versatile Vision-Language-Action Models via Learning Unified Vision-Motion Representations
+
+**核心定位：**  
+学习统一的 vision-motion representation，用于 versatile VLA。
+
+---
+
+### Joint-Aligned Latent Action: Towards Scalable VLA Pretraining in the Wild
+
+**核心定位：**  
+面向 in-the-wild VLA 预训练的 joint-aligned latent action。
+
+---
+
+### LaMP: Learning Vision-Language-Action Policy with 3D Scene Flow as Latent Motion Prior
+
+**核心定位：**  
+使用 3D scene flow 作为 latent motion prior 训练 VLA policy。
+
+---
+
+### LARY: A Latent Action Representation Yielding Benchmark for Generalizable Vision-to-Action Alignment
+
+**核心定位：**  
+面向 vision-to-action alignment 的 latent action representation benchmark。
+
+---
+
+## 4.3 Physics-Aware / Whole-Body VLA
+
+### PhysiFlow: Physics-Aware Humanoid Whole-Body VLA via Multi-Brain Latent Flow Matching and Robust Tracking
+
+**核心定位：**  
+物理感知的人形 whole-body VLA。
+
+**主要思想：**
+
+- multi-brain latent flow matching；
+- robust tracking；
+- 关注物理一致性和全身控制稳定性。
+
+---
+
+### A Careful Examination of Large Behavior Models for Multitask Dexterous Manipulation
+
+**核心定位：**  
+系统分析 large behavior models 在多任务灵巧操作中的能力和局限。
+
+---
+
+### Humanoid Agent via Embodied Chain-of-Action Reasoning with Multimodal Foundation Models for Zero-Shot Loco-Manipulation
+
+**核心定位：**  
+用多模态基础模型进行具身 Chain-of-Action 推理，实现 zero-shot loco-manipulation。
+
+**主要思想：**
+
+- 不直接端到端生成动作；
+- 先进行 object affordance analysis、region spatial reasoning 和 whole-body movement inference；
+- 再调用已有 action primitives 执行。
+
+---
+
+### RoboClaw: An Agentic Framework for Scalable Long-Horizon Robotic Tasks
+
+**核心定位：**  
+面向长时程机器人任务的 agentic framework。
+
+---
+
+## 4.4 长时程 VLA / Interleaved VLA
+
+### BagelVLA: Enhancing Long-Horizon Manipulation via Interleaved Vision-Language-Action Generation
+
+**核心定位：**  
+通过交错式 vision-language-action generation 增强长时程操作。
+
+---
+
+### Robotbrain-Dex
+
+**核心定位：**  
+文档中作为 dexterous / robot brain 相关条目出现，可归入 VLA / 机器人基础模型方向。
+
+---
+
+# 第五阶段：World Action Model
+
+## 机器人不仅输出动作，还要预测未来、理解物理、做长期规划
+
+这一阶段的核心问题是：
+
+> 机器人不只是根据当前图像输出动作，而是要理解“如果我这样做，未来会发生什么”。
+
+也就是：
+
+```text
+当前状态 + 动作
+↓
+未来状态预测
+↓
+物理理解
+↓
+长期规划
+↓
+更好的动作决策
+```
+
+这一阶段和 V-JEPA、latent world model、video dynamics、action-conditioned prediction、long-horizon planning 关系很大。
+
+---
+
+## 5.1 Robot World Model / World Action Model
+
+### FLARE: Robot Learning with Implicit World Modeling
+
+**核心定位：**  
+用 implicit world modeling 提升 robot learning。
+
+**主要思想：**
+
+- 在 post-training 阶段引入 future latent alignment；
+- 通过 latent future prediction 提升模型从人类视频中学习的能力；
+- 在 unseen object 场景下表现出较强泛化。
+
+---
+
+### AtomVLA: Scalable Post-Training for Robotic Manipulation via Predictive Latent World Models
+
+**核心定位：**  
+通过 predictive latent world model 做机器人操作后训练。
+
+**主要思想：**
+
+- 利用预测式 latent world model；
+- 可与 V-JEPA 类方法联系；
+- 可用于设计 offline RL reward 或 post-training 信号。
+
+---
+
+### Motus: A Unified Latent Action World Model
+
+**核心定位：**  
+统一 latent action 和 world model。
+
+---
+
+### DexWorldModel: Causal Latent World Modeling towards Automated Learning of Embodied Tasks
+
+**核心定位：**  
+面向具身任务自动学习的 causal latent world model。
+
+---
+
+### MotuBrain: An Advanced World Action Model for Robot Control
+
+**核心定位：**  
+面向机器人控制的 advanced world action model。
+
+---
+
+### Being-H0.7: A Latent World-Action Model from Egocentric Videos
+
+**核心定位：**  
+从第一视角视频学习 latent world-action model。
+
+---
+
+## 5.2 Video Dynamics / Action-Conditioned World Model
+
+### DIT4DIT: Jointly Modeling Video Dynamics and Actions for Generalizable Robot Control
+
+**核心定位：**  
+同时建模视频动态和动作，用于泛化机器人控制。
+
+---
+
+### Fast-WAM: Do World Action Models Need Test-Time Future Imagination?
+
+**核心定位：**  
+讨论 World Action Model 是否需要测试时 future imagination。
+
+---
+
+### PointWorld: Scaling 3D World Models for In-The-Wild Robotic Manipulation
+
+**核心定位：**  
+面向真实环境机器人操作的 3D world model。
+
+---
+
+### ABot-PhysWorld: Interactive World Foundation Model for Robotic Manipulation with Physics Alignment
+
+**核心定位：**  
+带物理对齐的交互式 world foundation model。
+
+---
+
+### World-Ego Modeling for Long-Horizon Evolution in Hybrid Embodied Tasks
+
+**核心定位：**  
+面向混合具身任务长时程演化的 world-ego modeling。
+
+---
+
+## 5.3 JEPA / Latent Representation / Physics Understanding
+
+### LeWorldModel: Stable End-to-End Joint-Embedding Predictive Architecture from Pixels
+
+**核心定位：**  
+从像素学习稳定的 JEPA 式 world model。
+
+---
+
+### V-JEPA 2.1: Unlocking Dense Features in Video Self-Supervised Learning
+
+**核心定位：**  
+视频自监督学习中的 dense feature 表征。
+
+---
+
+### Interpreting Physics in Video World Models
+
+**核心定位：**  
+分析视频 world model 内部是否编码物理规律。
+
+---
+
+### Reconstruction or Semantics? What Makes a Latent Space Useful for Robotic World Models
+
+**核心定位：**  
+讨论机器人 world model 中的 latent space 到底应该偏重重建还是语义。
+
+---
+
+### FLOW EQUIVARIANT WORLD MODELS: MEMORY FOR PARTIALLY OBSERVED DYNAMIC ENVIRONMENTS
+
+**核心定位：**  
+面向部分可观测动态环境的 flow-equivariant world model。
+
+---
+
+## 5.4 World Model Benchmark / Survey
+
+### RoboWM-Bench: A Benchmark for Evaluating World Models in Robotic Manipulation
+
+**核心定位：**  
+机器人操作 world model 的评测基准。
+
+---
+
+### World Model for Robot Learning: A Comprehensive Survey
+
+**核心定位：**  
+机器人学习中 world model 的系统综述。
+
+---
+
+## 5.5 Latent Planning / Long-Horizon Reasoning
+
+### DIAL: Decoupling Intent and Action via Latent World Modeling for End-to-End VLA
+
+**核心定位：**  
+通过 latent world modeling 解耦 intent 和 action。
+
+---
+
+### LoLA: Long Horizon Latent Action Learning for General Robot Manipulation
+
+**核心定位：**  
+面向通用机器人操作的长时程 latent action learning。
+
+---
+
+### Hierarchical Planning with Latent World Models
+
+**核心定位：**  
+基于 latent world model 的分层规划。
+
+---
+
+### STARRY: Spatial-Temporal Action-Centric World Modeling for Robotic Manipulation
+
+**核心定位：**  
+面向机器人操作的时空 action-centric world modeling。
+
+---
+
+### Latent Reasoning VLA: Latent Thinking and Prediction for Vision-Language-Action Models
+
+**核心定位：**  
+在 VLA 中引入 latent thinking 和 prediction。
+
+---
+
+## 5.6 World-Consistent Generation / Vision Foundation Support
+
+### VGGRPO: Towards World-Consistent Video Generation with 4D Latent Reward
+
+**核心定位：**  
+用 4D latent reward 约束视频生成的世界一致性。
+
+---
+
+### ViT³: Unlocking Test-Time Training in Vision
+
+**核心定位：**  
+视觉 test-time training 方法，可作为机器人视觉模型或世界模型的基础技术。
+
+---
+
+# 总结：五阶段演进路线
+
+```text
+第一阶段：Whole-Body Control
+解决机器人身体稳定执行问题
+代表：JAEGER / SONIC / From Experts to a Generalist / AMO
+
+↓
+
+第二阶段：Motion Representation
+解决高层语义和低层控制之间的动作接口问题
+代表：From Language to Locomotion / UniAct / TrajBooster / REFINE-DP
+
+↓
+
+第三阶段：Human Data Transfer
+解决机器人数据不足问题
+代表：HDMI / EgoHumanoid / Mitty / Emergence / EgoScale
+
+↓
+
+第四阶段：Humanoid VLA
+解决视觉、语言、动作统一建模问题
+代表：GR00T / Humanoid-VLA / WholeBodyVLA / ULTRA / Ψ₀
+
+↓
+
+第五阶段：World Action Model
+解决未来预测、物理理解和长期规划问题
+代表：FLARE / AtomVLA / Motus / DexWorldModel / MotuBrain
+```
+
+---
+
+# 对 Dex 研究的启发
+
+如果结合 Dex 人形机器人项目，可以把路线理解成：
+
+```text
+Dex 低层稳定控制
+↓
+Whole-Body Controller
+↓
+motion latent / action token / EEF trajectory / foot placement 接口
+↓
+Humanoid VLA 接入
+↓
+World Action Model 预测未来和规划长期任务
+```
+
+当前最值得优先关注的是：
+
+1. **Whole-Body Control**：先让 Dex 稳定执行全身动作；
+2. **Motion Representation**：设计适合 VLA 接入的动作接口；
+3. **Human Data Transfer**：思考如何利用人类视频、第一视角数据或跨 embodiment 数据；
+4. **Humanoid VLA**：将视觉和语言接入动作生成；
+5. **World Action Model**：进一步让机器人具备未来预测和长期规划能力。
+
+最终目标不是只让 Dex 做 velocity tracking，而是让它具备：
+
+```text
+看懂环境
+↓
+听懂任务
+↓
+生成动作意图
+↓
+稳定全身执行
+↓
+根据未来反馈持续调整
+```

@@ -80,9 +80,9 @@ touch /tmp/rl_start_signal
 
 启动手柄：
 
+进入`tmux3`
+
 ```bash
-#进入tmux
-tmux
 sudo su
 source /home/ubuntu/xos/setup.bash
 ros2 run joystick joystick_node
