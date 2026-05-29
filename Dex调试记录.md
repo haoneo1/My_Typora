@@ -1,5 +1,121 @@
 # Dex学习
 
+
+
+# 机器人基本知识
+
+## Action tracker
+
+这句话把当前领域分成两个趋势：
+
+第一类是 **general motion tracker**：
+
+```
+大量动作数据
+    ↓
+训练一个通用 tracker
+    ↓
+可以跟踪各种人体/机器人动作
+```
+
+第二类是 **teleoperation system**：
+
+```
+人通过 VR / 动捕 / 手柄控制机器人
+    ↓
+收集真实任务数据
+    ↓
+用于移动操作、模仿学习、VLA 训练
+```
+
+## IMU
+
+IMU 是 **Inertial Measurement Unit，惯性测量单元**。
+
+在机器人里，它通常用来测量机器人机身的运动状态，尤其是：
+
+1. **角速度 angular velocity**
+    也就是机器人绕三个轴转动的速度：
+   $$
+   \omega_t = [\omega_x,\omega_y,\omega_z]
+   $$
+   例如机器人向左转、身体前后摇晃、左右倾斜，都会产生角速度。
+
+2. **线加速度 linear acceleration**
+    也就是机器人在 x、y、z 方向上的加速度：
+   $$
+   a_t = [a_x,a_y,a_z]
+   $$
+
+3. **姿态估计 orientation / attitude**
+    有些 IMU 会结合陀螺仪、加速度计、磁力计，通过滤波算法估计 roll、pitch、yaw，或者四元数姿态。
+
+
+
+
+
+##  link
+
+在机器人模型里，**link 是机器人中的刚体部件**。
+
+机器人通常由两类东西组成：
+
+```
+link：
+    刚体部件
+
+joint：
+    连接两个 link 的关节
+```
+
+例如一个 humanoid 机器人可以有这些 link：
+
+```
+pelvis link
+torso link
+left thigh link
+left calf link
+left foot link
+right upper arm link
+right forearm link
+right hand link
+head link
+...
+```
+
+简单说：
+
+```
+joint 是关节
+link 是被关节连接起来的身体段
+```
+
+比如人的腿：
+
+```
+大腿骨段 = thigh link
+膝盖 = knee joint
+小腿骨段 = calf link
+踝关节 = ankle joint
+脚 = foot link
+```
+
+在仿真模型 URDF / MJCF 里面，机器人就是由 link 和 joint 组成的树形结构。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## 训练传参
 
 **训练 Dex 机器人在 Isaac Lab / Isaac Sim 里学会稳定行走。**
